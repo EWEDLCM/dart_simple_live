@@ -1,7 +1,11 @@
-name: Build Simple Live App for Android
+# .github/workflows/main.yml
+
+name: Simple Live App for Android
 
 on:
+  # 允许您在 GitHub Actions 页面手动触发此工作流
   workflow_dispatch:
+  # 当有代码推送到 main 分支时自动触发
   push:
     branches:
       - main
@@ -9,30 +13,46 @@ on:
 jobs:
   build-android:
     name: Build Android APK
+    # 使用最新的稳定版 Ubuntu 运行环境
     runs-on: ubuntu-latest
 
     steps:
+      # 第一步：检出您的代码仓库
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 第二步：设置 Flutter SDK 环境
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' 
+          channel: 'stable' # 使用稳定版的 Flutter
 
-      - name: Change to app directory
-        run: cd simple_live_app
+      # 第三步（优化）：缓存 Flutter 依赖项
+      # 这会根据 pubspec.lock 文件的哈希值来缓存包，如果文件未变，则恢复缓存，加快构建速度
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache # Flutter 依赖缓存的路径
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
 
+      # 第四步：获取 Flutter 依赖项
+      # 注意：此步骤必须在 simple_live_app 目录下执行
       - name: Get Flutter dependencies
         run: flutter pub get
-        working-directory: ./simple_live_app 
+        working-directory: ./simple_live_app
 
+      # 第五步：构建 Android APK 发布包
+      # 注意：此步骤也必须在 simple_live_app 目录下执行
       - name: Build APK
         run: flutter build apk --release
-        working-directory: ./simple_live_app 
+        working-directory: ./simple_live_app
 
+      # 第六步：上传构建产物 (APK 文件)
+      # 构建成功后，您可以在工作流的运行结果页面下载这个 APK 文件
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk 
-          path: simple_live_app/build/app/outputs/flutter-apk/app-release.apk 
+          name: app-release-apk
+          path: simple_live_app/build/app/outputs/flutter-apk/app-release.apk
